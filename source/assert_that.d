@@ -1,22 +1,27 @@
 module assert_that;
 
 
-mixin template assertThat(string lhs, alias matcher, string file = __FILE__, ulong line = __LINE__)
+mixin template assertThat(string name, alias lhs, alias matcher)
+{
+    int VARIABLE_FOR_ASSERT_THAT_DONT_REFER_ME = ()
+    {
+        import std.format : format;
+
+        mixin("auto %s = %s;".format(name, lhs));
+        mixin assertThat!(name, matcher);
+
+        return 0;
+    }();
+}
+
+mixin template assertThat(string lhs, alias matcher)
 {
     int VARIABLE_FOR_ASSERT_THAT_DONT_REFER_ME = ()
     {
         import std.conv : to;
         import std.string : join;
 
-        string[] errors;
-
         mixin matcher.match!(lhs, matcher.args);
-
-        if (errors.length > 0)
-            mixin(
-                "#line " ~ line.to!string ~ " \"" ~ file ~ "\"\n"
-                q{assert(false, "\n" ~ errors.join("\n"));}
-            );
 
         return 0;
     }();
@@ -33,14 +38,18 @@ template op(string operator, alias rhs, string file = __FILE__, ulong line = __L
         int VARIABLE_FOR_ASSERT_THAT_DONT_REFER_ME = ()
         {
             import std.format : format;
+            import std.conv : to;
 
-            static if (!__traits(compiles, !mixin(lhs ~ operator ~ rhs.stringof)))
-                errors ~= "%s(%s): %s: invalid expression: %s %s %s".format(file, line, lhs, lhs, operator, rhs);
+            static if (__traits(compiles, !mixin(lhs ~ operator ~ rhs.stringof)))
+                mixin(
+                    "#line %d \"%s\"\n".format(line, file) ~
+                    q{assert(mixin(lhs ~ operator ~ rhs.stringof), lhs ~ ": actual " ~ mixin(lhs).to!string ~ ": expected " ~ operator ~ " " ~ rhs.to!string);}
+                );
             else
-            {
-                if (!mixin(lhs ~ operator ~ rhs.stringof))
-                    errors ~= "%s(%s): %s: actual %s: expected %s %s".format(file, line, lhs, mixin(lhs), operator, rhs);
-            }
+                mixin(
+                    "#line %d \"%s\"\n".format(line, file) ~
+                    q{assert(false, lhs ~ ": invalid expression: " ~ lhs ~ " " ~ operator ~ " " ~ rhs);}
+                );
 
             return 0;
         }();
@@ -62,14 +71,15 @@ template arr(alias matchers, string file = __FILE__, ulong line = __LINE__)
     {
         int VARIABLE_FOR_ASSERT_THAT_DONT_REFER_ME = ()
         {
+            import assert_that : eq;
+
             mixin eq!0.match!(lhs ~ ".length", "==", matchers.length, file, line);
 
             foreach (i, matcher; matchers)
             {
                 import std.conv : to;
 
-                if (i < mixin(lhs ~ ".length"))
-                    mixin matcher.match!(lhs ~ "[" ~ i.to!string ~  "]", matcher.args);
+                mixin matcher.match!(lhs ~ "[" ~ i.to!string ~  "]", matcher.args);
             }
 
             return 0;
@@ -97,7 +107,10 @@ template field(string fieldName, alias matcher, string file = __FILE__, ulong li
             static if (__traits(compiles, mixin(lhs ~ "." ~ fieldName)))
                 mixin matcher.match!(lhs ~ "." ~ fieldName, matcher.args);
             else
-                errors ~= "%s(%s): %s.%s: %s does not exist".format(file, line, lhs, fieldName, fieldName);
+                mixin(
+                    "#line %d \"%s\"\n".format(line, file) ~
+                    q{assert(false, lhs ~ "." ~ fieldName ~ ": field '" ~ fieldName ~ "' does not exist");}
+                );
 
             return 0;
         }();
