@@ -17,7 +17,6 @@ mixin template assertThat(string lhs, alias matcher, string file = __FILE__, ulo
                 "#line " ~ line.to!string ~ " \"" ~ file ~ "\"\n"
                 q{assert(false, "\n" ~ errors.join("\n"));}
             );
-            
 
         return 0;
     }();

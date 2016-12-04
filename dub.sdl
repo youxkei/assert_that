@@ -1,0 +1,5 @@
+name "assert_that"
+description "An assert function with pattern matching"
+authors "Hisayuki Mima"
+copyright "Copyright © 2016"
+license "CC0"
