@@ -62,34 +62,32 @@ template eq(alias rhs, string file = __FILE__, ulong line = __LINE__)
 }
 
 
-template arr(alias matchers, string file = __FILE__, ulong line = __LINE__)
+template array(string file = __FILE__, ulong line = __LINE__)
 {
-    import std.meta : AliasSeq;
-    alias args = AliasSeq!(file, line, matchers.args);
-
-    mixin template match(string lhs, string file, ulong line, matchers...)
+    template _(matchers...)
     {
-        int VARIABLE_FOR_ASSERT_THAT_DONT_REFER_ME = ()
+        import std.meta : AliasSeq;
+        alias args = AliasSeq!(file, line, matchers);
+
+        mixin template match(string lhs, string file, ulong line, matchers...)
         {
-            import assert_that : eq;
-
-            mixin eq!0.match!(lhs ~ ".length", "==", matchers.length, file, line);
-
-            foreach (i, matcher; matchers)
+            int VARIABLE_FOR_ASSERT_THAT_DONT_REFER_ME = ()
             {
-                import std.conv : to;
+                import assert_that : eq;
 
-                mixin matcher.match!(lhs ~ "[" ~ i.to!string ~  "]", matcher.args);
-            }
+                mixin eq!0.match!(lhs ~ ".length", "==", matchers.length, file, line);
 
-            return 0;
-        }();
+                foreach (i, matcher; matchers)
+                {
+                    import std.conv : to;
+
+                    mixin matcher.match!(lhs ~ "[" ~ i.to!string ~  "]", matcher.args);
+                }
+
+                return 0;
+            }();
+        }
     }
-}
-
-template ay(matchers...)
-{
-    alias args = matchers;
 }
 
 
