@@ -116,6 +116,37 @@ template field(string fieldName, alias matcher, string file = __FILE__, ulong li
 }
 
 
+template fields(string file = __FILE__, ulong line = __LINE__)
+{
+    template _(matchers...)
+    {
+        import std.meta : AliasSeq;
+        alias args = AliasSeq!(file, line, matchers);
+
+        mixin template match(string lhs, string file, ulong line, matchers...)
+        {
+            int VARIABLE_FOR_ASSERT_THAT_DONT_REFER_ME = ()
+            {
+                import std.traits : FieldNameTuple;
+                import assert_that : eq;
+
+                mixin eq!0.match!("FieldNameTuple!(typeof(" ~ lhs ~ ")).length", "==", matchers.length, file, line);
+
+                foreach (i, field; FieldNameTuple!(typeof(mixin(lhs))))
+                {
+                    import std.traits : Alias;
+                    import std.conv : to;
+
+                    mixin Alias!(matchers[i]).match!(lhs ~ "." ~ field, matchers[i].args);
+                }
+
+                return 0;
+            }();
+        }
+    }
+}
+
+
 template all(matchers...)
 {
     alias args = matchers;
