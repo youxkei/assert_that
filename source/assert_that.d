@@ -35,23 +35,28 @@ template op(string operator, alias rhs, string file = __FILE__, ulong line = __L
 
     mixin template match(string lhs, string operator, alias rhs, string file, ulong line)
     {
-        int VARIABLE_FOR_ASSERT_THAT_DONT_REFER_ME = ()
+        int VARIABLE_FOR_ASSERT_THAT_DONT_REFER_ME = delegate int()
         {
             import std.format : format;
-            import std.conv : to;
 
             static if (__traits(compiles, !mixin(lhs ~ operator ~ rhs.stringof)))
+            {
+                import std.conv : to;
+
                 mixin(
                     "#line %d \"%s\"\n".format(line, file) ~
-                    q{assert(mixin(lhs ~ operator ~ rhs.stringof), lhs ~ ": actual " ~ mixin(lhs).to!string ~ ": expected " ~ operator ~ " " ~ rhs.to!string);}
-                );
-            else
-                mixin(
-                    "#line %d \"%s\"\n".format(line, file) ~
-                    q{assert(false, lhs ~ ": invalid expression: " ~ lhs ~ " " ~ operator ~ " " ~ rhs);}
+                    q{assert(mixin(lhs ~ operator ~ rhs.stringof), lhs ~ ": actual " ~ mixin(lhs).to!string ~ ": expected " ~ operator ~ " " ~ rhs.stringof);}
                 );
 
-            return 0;
+                return 0;
+            }
+            else
+            {
+                mixin(
+                    "#line %d \"%s\"\n".format(line, file) ~
+                    q{assert(false, lhs ~ ": invalid expression: " ~ lhs ~ " " ~ operator ~ " " ~ rhs.stringof);}
+                );
+            }
         }();
     }
 }
